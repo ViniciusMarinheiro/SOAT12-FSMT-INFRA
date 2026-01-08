@@ -1,0 +1,99 @@
+name: 'Terraform Deploy to Azure AKS'
+
+on:
+  # Dispara em push para a branch 'main'
+  push:
+    branches:
+      - main
+  # Dispara em pull requests contra a branch 'main' (para rodar o 'plan')
+  pull_request:
+    branches:
+      - main
+  # Permite o disparo manual pela UI do GitHub
+  workflow_dispatch:
+
+# Permissões necessárias para o OIDC se autenticar no Azure
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  # Define o diretório de trabalho do Terraform
+  TF_WORKING_DIR: 'terraform/azure-aks'
+  
+  # === Configuração do OIDC para o Provider AzureRM ===
+  # Crie estes segredos nas Configurações do seu repositório GitHub
+  # (Settings > Secrets and variables > Actions)
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  # Habilita a autenticação OIDC no provider
+  ARM_USE_OIDC: true
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    
+    # Opcional: Use ambientes do GitHub para proteger segredos
+    environment: production 
+
+    steps:
+      # 1. Baixa o código do repositório
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Instala o CLI do Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 3. Inicializa o Terraform (baixa providers e configura o backend)
+      # As variáveis ARM_* no 'env' são usadas aqui para autenticar no backend
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      # 4. Valida a sintaxe dos arquivos .tf
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      # 5. Gera um plano de execução
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        # Se for um PR, o workflow não deve falhar se houver mudanças
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+
+      # 6. (Opcional) Comenta o resultado do 'plan' no Pull Request
+      - name: Update PR with Plan
+        uses: actions/github-script@v6
+        if: github.event_name == 'pull_request' && steps.plan.outcome != 'failure'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Plan 📖
+            <details><summary>Mostrar Plano (${{ steps.plan.outcome }})</summary>
+            \`\`\`\n
+            ${{ steps.plan.outputs.stdout }}
+            \n\`\`\`
+            </details>
+            
+            *Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      # 7. Aplica as mudanças (APENAS em push para a 'main')
+      - name: Terraform Apply
+        # Garante que o apply só rode em push para a 'main' e se o 'plan' foi bem-sucedido
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outcome == 'success'
+        run: terraform apply -auto-approve "tfplan"
+        working-directory: ${{ env.TF_WORKING_DIR }}
