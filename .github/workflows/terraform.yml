@@ -1,14 +1,14 @@
 name: 'Terraform Deploy to Azure AKS'
 
 on:
-  # Dispara em push para a branch 'main'
+  # Dispara em push para a branch 'master'
   push:
     branches:
-      - main
-  # Dispara em pull requests contra a branch 'main' (para rodar o 'plan')
+      - master
+  # Dispara em pull requests contra a branch 'master' (para rodar o 'plan')
   pull_request:
     branches:
-      - main
+      - master
   # Permite o disparo manual pela UI do GitHub
   workflow_dispatch:
 
@@ -91,9 +91,9 @@ jobs:
               body: output
             });
 
-      # 7. Aplica as mudanças (APENAS em push para a 'main')
+      # 7. Aplica as mudanças (APENAS em push para a 'master')
       - name: Terraform Apply
-        # Garante que o apply só rode em push para a 'main' e se o 'plan' foi bem-sucedido
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outcome == 'success'
+        # Garante que o apply só rode em push para a 'master' e se o 'plan' foi bem-sucedido
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push' && steps.plan.outcome == 'success'
         run: terraform apply -auto-approve "tfplan"
         working-directory: ${{ env.TF_WORKING_DIR }}
