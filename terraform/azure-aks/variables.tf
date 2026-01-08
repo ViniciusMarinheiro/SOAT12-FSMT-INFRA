@@ -1,19 +1,19 @@
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "MyResourceGroup"
+  default     = "rg-fsmt-soat12"
 }
 
 variable "location" {
   description = "The Azure region to deploy to"
   type        = string
-  default     = "East US"
+  default     = "East US 2"
 }
 
 variable "cluster_name" {
   description = "The name of the AKS cluster"
   type        = string
-  default     = "my-aks-cluster"
+  default     = "aks-fsmt"
 }
 
 variable "node_count" {
