@@ -1,17 +1,23 @@
 # SOAT12-FSMT-INFRA
 
-## 📌 Propósito
-Este repositório é responsável pelo provisionamento e gestão da infraestrutura como código (IaC) na Azure. Ele garante que o ambiente de execução (AKS), o registro de imagens (ACR) e o banco de dados estejam configurados corretamente para suportar os serviços da aplicação.
+## 📝 Descrição do Propósito
+Este repositório é responsável por provisionar a infraestrutura base na Azure utilizando **Terraform**. Ele cria o alicerce do projeto: o **Resource Group** e o cluster **Azure Kubernetes Service (AKS)**.
 
-## 🛠️ Tecnologias Utilizadas
-* **Terraform**: Orquestração e provisionamento de infraestrutura.
-* **Azure Kubernetes Service (AKS)**: Cluster gerenciado para orquestração de containers.
-* **Azure Container Registry (ACR)**: Registro privado para imagens Docker.
-* **GitHub Actions**: Automação do provisionamento via pipeline CI/CD.
+## 🛠 Tecnologias Utilizadas
+* **Terraform**: Infraestrutura como Código.
+* **Azure AKS**: Orquestrador de containers.
+* **GitHub Actions**: Pipeline de CI/CD.
+* **OIDC**: Autenticação federada segura.
 
 ## 🚀 Passos para Execução e Deploy
-1. **Configuração de Segredos**: Configure o segredo `AZURE_CREDENTIALS` no GitHub com o JSON gerado via Azure CLI.
-2. **Provisionamento**: Realize o push para a branch `main` para disparar o `terraform apply`.
-3. **Conexão Local**: Para gerenciar o cluster localmente, utilize:
-   ```powershell
-   az aks get-credentials --resource-group rg-fsmt-soat12 --name aks-fsmt
+
+### 💻 Execução Local
+1. **Login no Azure**: `az login`
+2. **Inicializar**: `terraform init`
+3. **Planejar**: `terraform plan -out=main.tfplan`
+4. **Aplicar**: `terraform apply "main.tfplan"`
+
+### ☁️ Execução na Nuvem (CI/CD)
+1. **GitHub Secrets**: Configure `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` e `AZURE_SUBSCRIPTION_ID`.
+2. **Deploy**: Realize um `push` para a branch `main`.
+3. **Workflow**: O GitHub Actions executará o job `terraform apply` automaticamente após o sucesso do `plan`.
